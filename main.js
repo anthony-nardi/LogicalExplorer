@@ -16,11 +16,11 @@ function canvasApp() {
     'canvas': canvas,
     'ctx': canvas.getContext('2d')
   });
-
+  console.log('hi')
   myLogic = logic({
     'myMap' : myMap,
     'map' : myMap.map
   })
-
-  window.myMap = myMap;
+  window.logic = logic
+  console.log('hii')
 }

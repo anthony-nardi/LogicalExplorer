@@ -62,8 +62,6 @@ module.exports = (function () {
             ctx.fillStyle = this.monsterColor;
           } else if (tileId === 'Gold') {
             ctx.fillStyle = this.goldColor;
-          } else if (tileId === 'Ammo') {
-            ctx.fillStyle = this.ammoColor;
           } else if (tileId === 'Ladder') {
             ctx.fillStyle = this.ladderColor;
           } else if (tileId === 'Player') {
@@ -81,8 +79,8 @@ module.exports = (function () {
 
       var colLength = this.map[0].length,
           rowLength = this.map.length,
-          ids = ['Pit','Monster','Gold','Ammo','Ladder'],
-          senses = ['Breeze', 'Smell', 'Shine', 'Smoke', undefined],
+          ids = ['Pit','Monster','Gold','Ladder'],
+          senses = ['Breeze', 'Smell', 'Shine', undefined],
           max = [this.maxPit,this.maxMonster,this.maxGold,this.maxAmmo,this.maxLadder],
           numObjs;
       
@@ -127,10 +125,10 @@ module.exports = (function () {
   'sensify' : function  (isFirstTime) {
     for (var row = 0; row < this.rows; row += 1) {
       for (var col = 0; col < this.columns; col += 1) {
-        if (this.map[col][row].id !== 0 && this.map[col][row].id !== 'Ladder') {
+        if (this.map[col][row].id !== 0 && this.map[col][row].id !== 'Ladder' && this.map[col][row].id !== 'Player') {
           var adjacents = this.getAdjacentTiles(col, row);
           for (var i = 0;  i < adjacents.length; i += 1) {
-            if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder') {
+            if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder' || adjacents[i].id === 'Player') {
               if (this.map[col][row].id !== 'Pit') {
                 if (adjacents[i].mutable.indexOf(this.map[col][row].sense) === -1) {
                   adjacents[i].mutable.push(this.map[col][row].sense);
@@ -156,7 +154,7 @@ module.exports = (function () {
         if (this.map[startCol] && 
             this.map[startCol][startRow] && 
             (this.map[col][row] !== this.map[startCol][startRow]) &&
-            (startCol === 0 || startRow === 0)) {
+            (startCol === col || startRow === row)) {
           adjacents.push(this.map[startCol][startRow]);
         }
       }
@@ -169,7 +167,9 @@ module.exports = (function () {
     this.map[randPos[0]][randPos[1]].id = 'Player';
     this.player = {
       'col': randPos[0],
-      'row': randPos[1]
+      'row': randPos[1],
+      'ammo': 1,
+      'queue' :  []
     };
     return this;
   }
@@ -180,7 +180,7 @@ module.exports = (function () {
 
   var init = function (that) {
     that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
-    
+    console.log('buttttt')
     return that;
   }
 
