@@ -1,7 +1,7 @@
 require('./extend');
 
 var map = require('./map'),
-    gameObjects = require('./gameObjects');
+    logic = require('./logic');
 
 window.addEventListener('load', eventWindowLoaded, false);
 
@@ -16,6 +16,11 @@ function canvasApp() {
     'canvas': canvas,
     'ctx': canvas.getContext('2d')
   });
+
+  myLogic = logic({
+    'myMap' : myMap,
+    'map' : myMap.map
+  })
 
   window.myMap = myMap;
 }

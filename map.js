@@ -11,6 +11,7 @@ module.exports = (function () {
     'ladderColor' : '#98744e',
     'goldColor' : '#fbff00',
     'ammoColor' : '#000000',
+    'playerColor' : '#ff208c',
 
     'maxPit': 10,
     'maxMonster': 1,
@@ -41,7 +42,8 @@ module.exports = (function () {
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
-          tileHeight = this.canvas.height / this.columns;
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
       //draw outline
 
       ctx.lineWidth = 3;
@@ -51,18 +53,21 @@ module.exports = (function () {
 
       for (var col = 0; col < this.columns; col += 1) {
         for (var row = 0; row < this.rows; row += 1) {
-          if (this.map[col][row].id === 0) {
+          tileId = this.map[col][row].id;
+          if (tileId === 0) {
             ctx.fillStyle = '#ffffff';
-          } else if (this.map[col][row].id === 'Pit') {
+          } else if (tileId === 'Pit') {
             ctx.fillStyle = this.pitColor;
-          } else if (this.map[col][row].id === 'Monster') {
+          } else if (tileId === 'Monster') {
             ctx.fillStyle = this.monsterColor;
-          } else if (this.map[col][row].id === 'Gold') {
+          } else if (tileId === 'Gold') {
             ctx.fillStyle = this.goldColor;
-          } else if (this.map[col][row].id === 'Ammo') {
+          } else if (tileId === 'Ammo') {
             ctx.fillStyle = this.ammoColor;
-          } else if (this.map[col][row].id === 'Ladder') {
+          } else if (tileId === 'Ladder') {
             ctx.fillStyle = this.ladderColor;
+          } else if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
           }
 
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
@@ -135,6 +140,7 @@ module.exports = (function () {
                   adjacents[i].immutable.push(this.map[col][row].sense);
                 }
               }
+              adjacents[i].totalSenses = adjacents[i].getTotalSenses();
             }
           }
         }
@@ -147,18 +153,34 @@ module.exports = (function () {
     var adjacents = [];
     for (var startCol = col - 1; startCol <= col + 1; startCol += 1) {
       for (var startRow = row - 1; startRow <= row + 1; startRow += 1) {
-        if (this.map[startCol] && this.map[startCol][startRow]) {
+        if (this.map[startCol] && 
+            this.map[startCol][startRow] && 
+            (this.map[col][row] !== this.map[startCol][startRow]) &&
+            (startCol === 0 || startRow === 0)) {
           adjacents.push(this.map[startCol][startRow]);
         }
       }
     }
     return adjacents;
+  },
+
+  'placePlayer' : function () {
+    var randPos = this.getRandPos();
+    this.map[randPos[0]][randPos[1]].id = 'Player';
+    this.player = {
+      'col': randPos[0],
+      'row': randPos[1]
+    };
+    return this;
   }
+
+
+
   }
 
   var init = function (that) {
-    that.createGameArray().generateObstacle().sensify(1).drawGameBoard();
-  
+    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
+    
     return that;
   }
 

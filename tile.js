@@ -1,7 +1,7 @@
 module.exports = (function () {
 	
 	var tileProto = {
-	  'totalSenses' : function () {
+	  'getTotalSenses' : function () {
 	    var array = [];
       for (var i = 0; i < this.mutable.length; i += 1) {
       	array.push(this.mutable[i]);

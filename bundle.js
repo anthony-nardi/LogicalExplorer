@@ -2,7 +2,7 @@
 require('./extend');
 
 var map = require('./map'),
-    gameObjects = require('./gameObjects');
+    logic = require('./logic');
 
 window.addEventListener('load', eventWindowLoaded, false);
 
@@ -18,9 +18,14 @@ function canvasApp() {
     'ctx': canvas.getContext('2d')
   });
 
+  myLogic = logic({
+    'myMap' : myMap,
+    'map' : myMap.map
+  })
+
   window.myMap = myMap;
 }
-},{"./extend":2,"./map":3,"./gameObjects":4}],2:[function(require,module,exports){
+},{"./extend":2,"./map":3,"./logic":4}],2:[function(require,module,exports){
 // All credit to Anthony Nardi
 // git@github.com:anthony-nardi/Extends.git
 
@@ -44,7 +49,17 @@ if (!Object.prototype.extend) {
   };
 };
 },{}],4:[function(require,module,exports){
+module.exports = function () {
+  
+  var logicProto = {
 
+  };
+
+  return function (OO) {
+  	return Object.create(logicProto).extend(OO);
+  }
+
+};
 },{}],3:[function(require,module,exports){
 module.exports = (function () {
   var tile = require('./tile');
@@ -59,6 +74,7 @@ module.exports = (function () {
     'ladderColor' : '#98744e',
     'goldColor' : '#fbff00',
     'ammoColor' : '#000000',
+    'playerColor' : '#ff208c',
 
     'maxPit': 10,
     'maxMonster': 1,
@@ -89,7 +105,8 @@ module.exports = (function () {
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
-          tileHeight = this.canvas.height / this.columns;
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
       //draw outline
 
       ctx.lineWidth = 3;
@@ -99,18 +116,21 @@ module.exports = (function () {
 
       for (var col = 0; col < this.columns; col += 1) {
         for (var row = 0; row < this.rows; row += 1) {
-          if (this.map[col][row].id === 0) {
+          tileId = this.map[col][row].id;
+          if (tileId === 0) {
             ctx.fillStyle = '#ffffff';
-          } else if (this.map[col][row].id === 'Pit') {
+          } else if (tileId === 'Pit') {
             ctx.fillStyle = this.pitColor;
-          } else if (this.map[col][row].id === 'Monster') {
+          } else if (tileId === 'Monster') {
             ctx.fillStyle = this.monsterColor;
-          } else if (this.map[col][row].id === 'Gold') {
+          } else if (tileId === 'Gold') {
             ctx.fillStyle = this.goldColor;
-          } else if (this.map[col][row].id === 'Ammo') {
+          } else if (tileId === 'Ammo') {
             ctx.fillStyle = this.ammoColor;
-          } else if (this.map[col][row].id === 'Ladder') {
+          } else if (tileId === 'Ladder') {
             ctx.fillStyle = this.ladderColor;
+          } else if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
           }
 
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
@@ -132,17 +152,12 @@ module.exports = (function () {
       for (var i = 0; i < ids.length; i += 1) {
         numObjs = Math.floor(Math.random()* max[i]) || 1;
         for (var k = 0; k < numObjs; k += 1) {
-         // var currentObject = Object.create(gameObjects[ids[i]])
           var randPos = this.getRandPos();
           //get tile and set id
            
           this.map[randPos[0]][randPos[1]].id = ids[i];
           this.map[randPos[0]][randPos[1]].sense = senses[i];
-      
-      //    currentObject.col = randPos[0];
-      //    currentObject.row = randPos[1];
-      
-       //   this.objectsArray.push(currentObject);       
+            
         }
       }
       return this;
@@ -188,6 +203,7 @@ module.exports = (function () {
                   adjacents[i].immutable.push(this.map[col][row].sense);
                 }
               }
+              adjacents[i].totalSenses = adjacents[i].getTotalSenses();
             }
           }
         }
@@ -206,12 +222,19 @@ module.exports = (function () {
       }
     }
     return adjacents;
+  },
+
+  'placePlayer' : function () {
+    var randPos = this.getRandPos();
+    this.map[randPos[0]][randPos[1]].id = 'Player';
+    return this;
   }
+
   }
 
   var init = function (that) {
-    that.createGameArray().generateObstacle().sensify(1).drawGameBoard();
-  
+    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
+    
     return that;
   }
 
@@ -224,7 +247,7 @@ module.exports = (function () {
 module.exports = (function () {
 	
 	var tileProto = {
-	  'totalSenses' : function () {
+	  'getTotalSenses' : function () {
 	    var array = [];
       for (var i = 0; i < this.mutable.length; i += 1) {
       	array.push(this.mutable[i]);
