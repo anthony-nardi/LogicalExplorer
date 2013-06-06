@@ -1,4 +1,5 @@
 module.exports = (function () {
+
   var astarTile = require('./astarTile')
   aStarProto = {
 
@@ -26,6 +27,7 @@ module.exports = (function () {
       this.current = tempCurrent;
       this.fillOpenSet(gameState);
 
+      //################******************######################
       if (this.current === this.gameState[this.myBoard.endRow][this.myBoard.endCol]) {
       	console.log('Path found.');
         this.finalPath = [];
@@ -76,7 +78,7 @@ module.exports = (function () {
       }
     }
     var startTile = that.start.extend(astarTile({
-      'board': gameState
+      'board': that.gameState
     }));
   	startTile.parent = startTile;
   	startTile.gScore = 0;
