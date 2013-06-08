@@ -38,7 +38,7 @@ module.exports = (function () {
       return this;
     },
 
-    'drawGameBoard' : function () {
+    'drawGameBoard' : function (safeTiles, visitedTiles) {
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
@@ -54,6 +54,8 @@ module.exports = (function () {
       for (var col = 0; col < this.columns; col += 1) {
         for (var row = 0; row < this.rows; row += 1) {
           tileId = this.map[col][row].id;
+          ctx.strokeStyle = 'black'
+          ctx.lineWidth = 2;
           if (tileId === 0) {
             ctx.fillStyle = '#ffffff';
           } else if (tileId === 'Pit') {
@@ -67,6 +69,19 @@ module.exports = (function () {
           } else if (tileId === 'Player') {
             ctx.fillStyle = this.playerColor;
           }
+          if (safeTiles) {
+            if (safeTiles.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'green'
+              ctx.lineWidth = 11
+            }
+          }
+          if (visitedTiles) {
+            if (visitedTiles.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'blue'
+              ctx.lineWidth = 11
+            }
+          }
+          
 
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
           ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);

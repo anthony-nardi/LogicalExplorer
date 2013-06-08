@@ -27,24 +27,28 @@ module.exports = (function () {
       this.current = tempCurrent;
       this.fillOpenSet(gameState);
 
-      //################******************######################
-      if (this.current === this.gameState[this.myBoard.endRow][this.myBoard.endCol]) {
+      if (this.gameState[this.endTile.col] && this.current === this.gameState[this.endTile.col][this.endTile.row]) {
       	console.log('Path found.');
         this.finalPath = [];
       	this.setPath(this.current.parent);
+        console.log(this.finalPath)
       	return;
       }
-      var that = this;
+      this.aStar()
   	},
 
   	'fillOpenSet' : function () {
+      console.log('Fill Open set')
   		var gameState = this.gameState,
           currTile;
+
       for (var i = this.current.col - 1; i <= this.current.col + 1; i += 1) {
       	for (var k = this.current.row - 1; k <= this.current.row + 1; k += 1) {
-          if (gameState[k] && gameState[k][i] && (i === 0 || k === 0)) {
-            currTile = gameState[k][i];
-            if (currTile.id !== 'Blocked' && this.closedSet.indexOf(currTile) === -1) {
+
+          if (gameState[i] && gameState[i][k] && (k === this.current.row || i === this.current.col)) {
+            currTile = gameState[i][k];
+
+            if (currTile !== undefined && currTile.id !== 'Blocked' && this.closedSet.indexOf(currTile) === -1) {
               currTile.getFScore(this.current);
               if (this.openSet.indexOf(currTile) === -1) {
                 this.openSet.push(currTile);
@@ -59,8 +63,13 @@ module.exports = (function () {
   	},
 
   	'setPath' : function (tile) {
-  		if (tile.id === "Start") return this.finalPath;
-  		this.finalPath.push(this.gameState[tile.row][tile.col]);
+  		if (tile.id === "Start") {
+        console.log('Start: ' + tile.col + ', ' + tile.row)
+        return this.finalPath;
+      }
+      if (this.gameState[tile.col] && this.gameState[tile.col][tile.row]) {
+        this.finalPath.push(this.gameState[tile.col][tile.row]);
+      }
   		this.setPath(tile.parent);
 
   	}
@@ -68,22 +77,37 @@ module.exports = (function () {
   }
   
   var init = function (that) {
+
     that.openSet =  [];
   	that.closedSet = [];
+    that.endTile = that.end;
+    var startTile = that.start.extend(astarTile({
+      'board': that.gameState,
+      'col': that.start.col,
+      'row': that.start.row
+    }));
     for (var i = 0; i < that.gameState.length; i += 1) {
-      for (var k = 0; k < that.gameState[i].length; k += 1) {
-        that.gameState[i][k].extend(astarTile({
-          'board': gameState
-        }))
+      if (that.gameState[i] && that.gameState[i].length) {
+        for (var k = 0; k < that.gameState[i].length; k += 1) {
+
+          if (that.gameState[i][k]) {
+            that.gameState[i][k].extend(astarTile({
+              'board': that.gameState,
+              'col': i,
+              'row': k
+            }))
+          }
+        }
       }
     }
-    var startTile = that.start.extend(astarTile({
-      'board': that.gameState
-    }));
+    
+
   	startTile.parent = startTile;
+    startTile.parent.id = 'Start';
   	startTile.gScore = 0;
     startTile.getFScore(startTile);
 	  that.openSet.push(startTile);
+
 	  that.aStar(that.gameState);
   	return that;
   }

@@ -5,19 +5,63 @@ module.exports = (function () {
     'observe' : function () {
       var player = this.myMap.player,
           totalSenses = this.myMap.map[player.col][player.row].totalSenses || [],
+          adjacentTiles = this.myMap.getAdjacentTiles(player.col, player.row)
           that = this;
-          console.log('total senses')
-          console.log(totalSenses)
-        this.makeDecision(totalSenses);
+        if (this.time) {
+          this.history[this.time] = {
+            'senses': totalSenses,
+            'monsterAlive' : this.history[this.time - 1].monsterAlive,
+            'currentTile' : this.map[this.myMap.player.col][this.myMap.player.row],
+            'row' : this.myMap.player.row,
+            'col' : this.myMap.player.col,
+            'time': this.time,
+            'visitedTiles' : this.history[this.time - 1].visitedTiles,
+            'safeTiles': this.history[this.time - 1].safeTiles,
+            'pits': this.history[this.time - 1].pits,
+            'gold': this.history[this.time - 1].gold,
+            'possiblePits': this.history[this.time - 1].possiblePits,
+            'monsters': this.history[this.time - 1].monsters,
+            'possibleMonsters': this.history[this.time - 1].possibleMonsters,
+            'possibleGold' : this.history[this.time - 1].possibleGold,
+            'ladder': this.history[this.time - 1].ladder
+          }
+        }
+        if (totalSenses.length === 0 && adjacentTiles.length) {
+          for (var i = 0; i < adjacentTiles.length; i += 1) {
+
+            if (this.history[this.time].safeTiles.indexOf(adjacentTiles[i]) === -1) {
+              this.history[this.time].safeTiles.push(adjacentTiles[i]);
+            }
+
+          }
+        }
+        if (this.map[player.col][player.row].id === 'Ladder') {
+          this.history[this.time].ladder = [this.map[player.col][player.row]];
+          if (player.gold) {
+            this.over = true;
+            return;
+          }
+        }
+
+        this.updatePotentials(totalSenses, adjacentTiles);
+
+        if (this.eliminator(adjacentTiles, totalSenses)) {
+          this.checkCertainty(this.myMap.player.col, this.myMap.player.row, adjacentTiles);
+        }
+
         if (player.queue.length) {
-          this.move(player.queue[0]);
+          if (player.queue[0][1]) {
+            this.move(player.queue[0]);
+          }
           player.queue.splice(0, 1);
+        } else {
+          this.makeDecision(totalSenses);
         }
       
       setTimeout(function () {
         if (!that.over) {
           that.observe();
-          that.myMap.drawGameBoard();
+          that.myMap.drawGameBoard(that.history[that.time-1].safeTiles, that.history[that.time-1].visitedTiles);
         }
       }, 200);
      
@@ -33,15 +77,24 @@ module.exports = (function () {
           time = this.history[this.time],
           visitedTiles = time.visitedTiles,
           map = this.myMap.map;
+          console.log('Action : ' + action[0])
+          console.log(action)
       if (action[0] === 'Move') {
-        map[player.col][player.row].id = 0;
-        map[action[1].col][action[1].row].id = 'Player';
+        
+        if (map[action[1].col][action[1].row].id === 'Ladder') {
+
+        } else {
+        
+          map[action[1].col][action[1].row].id = 'Player';
+        }
+        if (map[player.col][player.row].id === 'Ladder') {
+
+        } else {
+          map[player.col][player.row].id = 0;
+        }
         player.col = action[1].col;
         player.row = action[1].row;
-        console.log(map[player.col][player.row])
-        console.log(map[action[1].col][action[1].row])
-        if (visitedTiles.indexOf(map[action[1].col][action[1].row]) === -1 &&
-            player.queue.length === 1) {
+        if (visitedTiles.indexOf(map[action[1].col][action[1].row]) === -1) {
             visitedTiles.push(map[action[1].col][action[1].row]);
         }        
       }
@@ -56,6 +109,9 @@ module.exports = (function () {
         }
       }
       if (action[0] === 'Take') {
+        
+        player.gold = true;
+      
         console.log('Take ' + action[1]);
       }
       if (!action) {
@@ -144,6 +200,33 @@ module.exports = (function () {
 
     },
 
+    'getOut': function () {
+        console.log('GET OUTTTTTTT')
+        if (this.history[this.time].safeTiles.indexOf(this.history[this.time].ladder[0]) !== -1) {
+          //create path to tile we want to visit
+          var tileMap = this.generateTileMap(this.myMap.player, this.history[this.time].safeTiles[i]);
+          var endTile = this.history[this.time].ladder[0];
+          console.log('End Tile - ')
+          console.log(endTile)
+          tileMap.endCol = endTile.col;
+          tileMap.endRow = endTile.row;
+          console.log(tileMap)
+          var path = aStar({
+            'start': this.myMap.player, 
+            'end': endTile, 
+            'gameState': tileMap
+          }).finalPath;
+          path.reverse();
+          console.log('Follow path from ' + this.myMap.player.col + ', ' + this.myMap.player.row);
+          console.log('This is the path');
+          console.log(path)
+          for (var i = 0; i < path.length; i += 1) {
+            this.myMap.player.queue.push(['Move', path[i]]);
+          }
+          return;
+        }
+      },
+
     'updatePotentials' : function (totalSenses, adjacentTiles) {
       var senses = {
       	'Breeze': 'possiblePits', 
@@ -159,13 +242,13 @@ module.exports = (function () {
           //for each sense of the current tile
           for (var k = 0; k < totalSenses.length; k += 1) {
           	//if the possibility list for that sense does not contain the adjacent tile
-            console.log(totalSenses[k])
+
           	if (time[senses[totalSenses[k]]].indexOf(adjacentTiles[i]) === -1) {
           		//put that adjacent tile in the possibility list
           		time[senses[totalSenses[k]]].push(adjacentTiles[i]);
               if (totalSenses[k] === 'Shine' && totalSenses.length === 1) {
                 if (time.safeTiles.indexOf(adjacentTiles[i]) === -1) {
-                  console.log('in update potentials');
+
                   time.safeTiles.push(adjacentTiles[i]);
                 };
               }
@@ -184,7 +267,7 @@ module.exports = (function () {
           safeTiles = this.history[this.time].safeTiles;
       for (var i = 0; i < safeTiles.length; i += 1) {
         rows.push(safeTiles[i].row);
-        cols.push(safeTiles[i].cols);
+        cols.push(safeTiles[i].col);
       }
       rows.sort();
       cols.sort();
@@ -193,7 +276,7 @@ module.exports = (function () {
       startCol = cols[0];
       endCol = cols[cols.length - 1];
       for (var col = startCol; col <= endCol; col += 1) {
-        tileMap.push([])
+        tileMap[col] = [];
         for (var row = startRow; row <= endRow; row += 1) {
           if (start && start.row === row && start.col === col) {
             id = 'Start'
@@ -207,8 +290,9 @@ module.exports = (function () {
             };
           } else {
             tileMap[col][row] = {
-              'id' : id ? id : 'Block'
+              'id' : id ? id : 'Blocked'
             };
+            console.log('Blocked: ' + col + ', ' + row)
           }
           id = undefined;
         } 
@@ -218,45 +302,19 @@ module.exports = (function () {
 
     
     
+    
     'makeDecision' : function (totalSenses) {
       var adjacentTiles = this.myMap.getAdjacentTiles(this.myMap.player.col, this.myMap.player.row),
           storedMove;
-      if (this.time) {
-        this.history[this.time] = {
-          'senses': totalSenses,
-          'monsterAlive' : this.history[this.time - 1].monsterAlive,
-          'currentTile' : this.map[this.myMap.player.col][this.myMap.player.row],
-          'row' : this.myMap.player.row,
-          'col' : this.myMap.player.col,
-          'time': this.time,
-          'visitedTiles' : this.history[this.time - 1].visitedTiles,
-          'safeTiles': this.history[this.time - 1].safeTiles,
-          'pits': this.history[this.time - 1].pits,
-          'gold': this.history[this.time - 1].gold,
-          'possiblePits': this.history[this.time - 1].possiblePits,
-          'monsters': this.history[this.time - 1].monsters,
-          'possibleMonsters': this.history[this.time - 1].possibleMonsters,
-          'possibleGold' : this.history[this.time - 1].possibleGold
-        }
-      }
+          console.log('Make makeDecision')
 
-      //update the possibility lists and the definitive lists
-      this.updatePotentials(totalSenses, adjacentTiles);
-
-      if (this.eliminator(adjacentTiles, totalSenses)) {
-      	this.checkCertainty(this.myMap.player.col, this.myMap.player.row, adjacentTiles);
-      }
       //if we don't sense anything and we have adjacent tiles
       if (totalSenses.length === 0 && adjacentTiles.length) {
         
         //update safe tiles.
       	for (var i = 0; i < adjacentTiles.length; i += 1) {
-          console.log('current player pos');
-          console.log(this.myMap.player.col + ' ' + this.myMap.player.row);
-          console.log('adjacent')
-          console.log(adjacentTiles[i])
+
       		if (this.history[this.time].safeTiles.indexOf(adjacentTiles[i]) === -1) {
-            console.log('inside fn');
 						this.history[this.time].safeTiles.push(adjacentTiles[i]);
       		}
       		//if the adjacent tile has not been visited
@@ -266,6 +324,7 @@ module.exports = (function () {
 				  }
 				  if (!storedMove) {
 				  	//we have already visited every adjacent tile...what now?
+            storedMove = adjacentTiles[i]
 				  }
        	}
 				//move the player
@@ -273,6 +332,20 @@ module.exports = (function () {
       } else if (totalSenses.length !== 0 && adjacentTiles.length) {
         //see if we can make a route to the gold?
         if (this.history[this.time].gold.length) {
+          console.log('GOLD FOUND')
+         
+          if (this.myMap.player.gold) {
+            this.getOut();
+            return
+          }
+          if (adjacentTiles.indexOf(this.history[this.time].gold[0])) {
+            
+            var goTo = adjacentTiles[adjacentTiles.indexOf(this.history[this.time].gold[0])];
+            console.log(goTo)
+            this.myMap.player.queue.push(['Move', goTo])
+            this.myMap.player.queue.push(['Take', goTo])
+            return
+          }
           //generate a tilemap that fits the mental tilemap we construct for our history of safe tiles
           //can we make a path (aStar) with the generated map
           //if theres a path, take it, otherwwise..keep exploring?
@@ -285,7 +358,7 @@ module.exports = (function () {
                'start': startTile, 
                'end':endTile,
                'gameState': tileMap
-              });
+              }).finalPath;
           if (path) {
             path.reverse();
             for (var i = 0; i < path.length; i += 1) {
@@ -312,17 +385,19 @@ module.exports = (function () {
             //create path to tile we want to visit
             var tileMap = this.generateTileMap(this.myMap.player, this.history[this.time].safeTiles[i]);
             var endTile = this.history[this.time].safeTiles[i];
-            console.log('end tile');
-            console.log(endTile);
             tileMap.endCol = endTile.col;
             tileMap.endRow = endTile.row;
-
+            console.log(tileMap)
             var path = aStar({
               'start': this.myMap.player, 
               'end': this.history[this.time].safeTiles[i], 
               'gameState': tileMap
-            });
+            }).finalPath;
+          
             path.reverse();
+            console.log('Follow path from ' + this.myMap.player.col + ', ' + this.myMap.player.row)
+            
+            console.log(path)
             for (var i = 0; i < path.length; i += 1) {
               this.myMap.player.queue.push(['Move', path[i]]);
             }
@@ -342,7 +417,7 @@ module.exports = (function () {
                 'start': this.myMap.player, 
                 'end':  adjacentTilesToMonster[i], 
                 'gameState': tileMap
-              });
+              }).finalPath;
             path.reverse();
             for (var i = 0; i < path.length; i += 1) {
               if (i === path.length - 1) {
@@ -357,7 +432,7 @@ module.exports = (function () {
         }
         if (this.history[this.time].possibleMonsters.length && this.myMap.player.ammo) {
           //we need to take a chance and shoot
-          var adjacentTilesToMonster = this.map.getAdjacentTiles([this.history[this.time].possibleMonsters[0].col][this.history[this.time].possibleMonsters[0].row]);
+          var adjacentTilesToMonster = this.myMap.getAdjacentTiles([this.history[this.time].possibleMonsters[0].col][this.history[this.time].possibleMonsters[0].row]);
           for (var i = 0; i < adjacentTilesToMonster.length; i += 1) {
             if (this.history[this.time].safeTiles.indexOf(adjacentTilesToMonster[i]) !== -1) {
               var tileMap = this.generateTileMap(this.myMap.player, adjacentTilesToMonster[i]);
@@ -367,7 +442,7 @@ module.exports = (function () {
                 'start': this.myMap.player, 
                 'end': adjacentTilesToMonster[i], 
                 'gameState': this.generateTileMap(this.myMap.player, adjacentTilesToMonster[i])
-              });
+              }).finalPath;
             path.reverse();
             for (var i = 0; i < path.length; i += 1) {
               if (i === path.length - 1) {
@@ -389,7 +464,7 @@ module.exports = (function () {
   var init = function (that) {
       console.log(that)
       that.history[0] = {
-        'senses': that.myMap.map[that.myMap.player.col][that.myMap.player.row].totalSenses,
+        'senses': that.myMap.map[that.myMap.player.col][that.myMap.player.row].totalSenses || [],
         'monsterAlive' : true,
         'currentTile' : that.map[that.myMap.player.col][that.myMap.player.row],
         'row' : that.myMap.player.row,
@@ -402,7 +477,8 @@ module.exports = (function () {
         'possiblePits': [],
         'monsters': [],
         'possibleMonsters': [],
-        'possibleGold' : []
+        'possibleGold' : [],
+        'ladder': []
       }
       that.over = false;
       that.observe()
@@ -410,7 +486,6 @@ module.exports = (function () {
   }
 
   return function (OO) {
-    console.log('butt')
   	return init(Object.create(logicProto).extend(OO));
   }
 

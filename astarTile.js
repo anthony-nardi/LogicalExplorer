@@ -46,12 +46,9 @@ module.exports = (function () {
 
   }
 
-  var init = function (that) {
-    return that;
-  }
-
 	return function (OO) {
-	  return init(Object.create(tileProto).extend(OO));
+
+	  return Object.create(tileProto).extend(OO);
 	}
 
 }())
