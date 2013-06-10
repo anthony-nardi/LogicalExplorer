@@ -195,7 +195,6 @@ module.exports = (function () {
 
   var init = function (that) {
     that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
-    console.log('buttttt')
     return that;
   }
 
