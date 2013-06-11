@@ -49,7 +49,6 @@ module.exports = (function () {
           // If we have the gold at this point the game is over, because we have reached the ladder with 
           // the gold.
           if (this.history[this.time].takenGold) {
-            this.myMap.won();
             this.over = true;
             return;
           }
@@ -512,8 +511,7 @@ module.exports = (function () {
       }
 
       // The last situation is that we do not even have a clue where the monster is and the game is over.
-      this.over = true;
-      this.myMap.gameOver();
+      //this.over = true;
       return this;
   }
   };
