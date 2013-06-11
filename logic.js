@@ -84,10 +84,14 @@ module.exports = (function () {
       // Just so we can see the game evolve slowly we use a set timeout here. 
       
       setTimeout(function () {
+        if (!that.over && history.safeTiles.length === 0) {
+            this.myMap.gameOver();
+            this.over = true;
+        }
         if (!that.over) {
           that.observe();
           that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
-        }
+          }
       }, 200);
      
       return this;
@@ -512,6 +516,7 @@ module.exports = (function () {
 
       // The last situation is that we do not even have a clue where the monster is and the game is over.
       //this.over = true;
+
       return this;
   }
   };
