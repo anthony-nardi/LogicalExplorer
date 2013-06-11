@@ -10,7 +10,6 @@ module.exports = (function () {
     'monsterColor' : '#014421',
     'ladderColor' : '#98744e',
     'goldColor' : '#fbff00',
-    'ammoColor' : '#000000',
     'playerColor' : '#ff208c',
 
     'maxPit': 10,
@@ -38,6 +37,94 @@ module.exports = (function () {
       return this;
     },
 
+    'drawMidGameBoard' : function (safe, visited, pits, monsters, gold, ladder) {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      //draw outline
+
+      ctx.lineWidth = 3;
+      ctx.strokeRect(0,0,myCanvas.width, myCanvas.height);
+
+      //draw the tiles
+
+      for (var col = 0; col < this.columns; col += 1) {
+        for (var row = 0; row < this.rows; row += 1) {
+          tileId = this.map[col][row].id;
+          ctx.strokeStyle = 'black'
+          ctx.lineWidth = 2;
+          if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
+          } else if (tileId === 'Gold') {
+            ctx.fillStyle = this.goldColor;
+          } else if (tileId === 'Ladder') {
+            ctx.fillStyle = this.ladderColor;
+          } else if (tileId === 0) {
+            ctx.fillStyle = '#ffffff';
+          }
+          if (safe) {
+            if (safe.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'green'
+              ctx.lineWidth = 11
+            }
+          }
+          if (visited) {
+            if (visited.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'blue'
+              ctx.lineWidth = 11
+            }
+          }
+          if (pits) {
+            if (pits.indexOf(this.map[col][row]) !== -1) {
+              ctx.fillStyle = this.pitColor;
+            }
+          }
+          if (monsters) {
+            if (monsters.indexOf(this.map[col][row]) !== -1) {
+              ctx.fillStyle = this.monsterColor;
+            }
+          }
+
+          ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+          ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+        }
+      }
+      return this;
+    },
+
+    'won' : function () {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
+      ctx.fillStyle = '#000000';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mission Complete', myCanvas.width/2, myCanvas.height/2);
+
+    },
+
+    'gameOver' : function () {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
+      ctx.fillStyle = '#000000';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mission Impossible', myCanvas.width/2, myCanvas.height/2);
+    },
+
     'drawGameBoard' : function (safeTiles, visitedTiles) {
       var ctx = this.ctx,
           myCanvas = this.canvas,
@@ -49,13 +136,13 @@ module.exports = (function () {
       ctx.lineWidth = 3;
       ctx.strokeRect(0,0,myCanvas.width, myCanvas.height);
 
-      //draw circles
+      //draw the tiles
 
       for (var col = 0; col < this.columns; col += 1) {
         for (var row = 0; row < this.rows; row += 1) {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 5;
           if (tileId === 0) {
             ctx.fillStyle = '#ffffff';
           } else if (tileId === 'Pit') {
@@ -69,20 +156,20 @@ module.exports = (function () {
           } else if (tileId === 'Player') {
             ctx.fillStyle = this.playerColor;
           }
+          
           if (safeTiles) {
             if (safeTiles.indexOf(this.map[col][row]) !== -1) {
-              ctx.strokeStyle = 'green'
-              ctx.lineWidth = 11
+              ctx.strokeStyle = 'green';
+              ctx.lineWidth = 11;
             }
           }
           if (visitedTiles) {
             if (visitedTiles.indexOf(this.map[col][row]) !== -1) {
-              ctx.strokeStyle = 'blue'
-              ctx.lineWidth = 11
+              ctx.strokeStyle = 'blue';
+              ctx.lineWidth = 11;
             }
           }
           
-
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
           ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
@@ -194,7 +281,7 @@ module.exports = (function () {
   }
 
   var init = function (that) {
-    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
+    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawMidGameBoard();
     return that;
   }
 

@@ -60,7 +60,6 @@ module.exports = (function () {
     'monsterColor' : '#014421',
     'ladderColor' : '#98744e',
     'goldColor' : '#fbff00',
-    'ammoColor' : '#000000',
     'playerColor' : '#ff208c',
 
     'maxPit': 10,
@@ -88,6 +87,94 @@ module.exports = (function () {
       return this;
     },
 
+    'drawMidGameBoard' : function (safe, visited, pits, monsters, gold, ladder) {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      //draw outline
+
+      ctx.lineWidth = 3;
+      ctx.strokeRect(0,0,myCanvas.width, myCanvas.height);
+
+      //draw the tiles
+
+      for (var col = 0; col < this.columns; col += 1) {
+        for (var row = 0; row < this.rows; row += 1) {
+          tileId = this.map[col][row].id;
+          ctx.strokeStyle = 'black'
+          ctx.lineWidth = 2;
+          if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
+          } else if (tileId === 'Gold') {
+            ctx.fillStyle = this.goldColor;
+          } else if (tileId === 'Ladder') {
+            ctx.fillStyle = this.ladderColor;
+          } else if (tileId === 0) {
+            ctx.fillStyle = '#ffffff';
+          }
+          if (safe) {
+            if (safe.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'green'
+              ctx.lineWidth = 11
+            }
+          }
+          if (visited) {
+            if (visited.indexOf(this.map[col][row]) !== -1) {
+              ctx.strokeStyle = 'blue'
+              ctx.lineWidth = 11
+            }
+          }
+          if (pits) {
+            if (pits.indexOf(this.map[col][row]) !== -1) {
+              ctx.fillStyle = this.pitColor;
+            }
+          }
+          if (monsters) {
+            if (monsters.indexOf(this.map[col][row]) !== -1) {
+              ctx.fillStyle = this.monsterColor;
+            }
+          }
+
+          ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+          ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
+        }
+      }
+      return this;
+    },
+
+    'won' : function () {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
+      ctx.fillStyle = '#000000';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mission Complete', myCanvas.width/2, myCanvas.height/2);
+
+    },
+
+    'gameOver' : function () {
+      var ctx = this.ctx,
+          myCanvas = this.canvas,
+          tileWidth = this.canvas.width / this.rows,
+          tileHeight = this.canvas.height / this.columns,
+          tileId;
+      
+      ctx.fillStyle = '#FF0000';
+      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
+      ctx.fillStyle = '#000000';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mission Impossible', myCanvas.width/2, myCanvas.height/2);
+    },
+
     'drawGameBoard' : function (safeTiles, visitedTiles) {
       var ctx = this.ctx,
           myCanvas = this.canvas,
@@ -99,13 +186,13 @@ module.exports = (function () {
       ctx.lineWidth = 3;
       ctx.strokeRect(0,0,myCanvas.width, myCanvas.height);
 
-      //draw circles
+      //draw the tiles
 
       for (var col = 0; col < this.columns; col += 1) {
         for (var row = 0; row < this.rows; row += 1) {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 5;
           if (tileId === 0) {
             ctx.fillStyle = '#ffffff';
           } else if (tileId === 'Pit') {
@@ -119,20 +206,20 @@ module.exports = (function () {
           } else if (tileId === 'Player') {
             ctx.fillStyle = this.playerColor;
           }
+          
           if (safeTiles) {
             if (safeTiles.indexOf(this.map[col][row]) !== -1) {
-              ctx.strokeStyle = 'green'
-              ctx.lineWidth = 11
+              ctx.strokeStyle = 'green';
+              ctx.lineWidth = 11;
             }
           }
           if (visitedTiles) {
             if (visitedTiles.indexOf(this.map[col][row]) !== -1) {
-              ctx.strokeStyle = 'blue'
-              ctx.lineWidth = 11
+              ctx.strokeStyle = 'blue';
+              ctx.lineWidth = 11;
             }
           }
           
-
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
           ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
@@ -244,7 +331,7 @@ module.exports = (function () {
   }
 
   var init = function (that) {
-    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawGameBoard();
+    that.createGameArray().generateObstacle().placePlayer().sensify(1).drawMidGameBoard();
     return that;
   }
 
@@ -259,12 +346,7 @@ module.exports = (function () {
   var logicProto = {
     
     'observe' : function () {
-      if (history.takenGold) {
-        conseol.log('&&&%%%%%%%^^^^^^^^^^^^^^^^&&&&****************((((((((((((')
-        return;
-      };
-      console.log('player queue');
-      console.log(this.myMap.player.queue);
+      
       var player = this.myMap.player,
           totalSenses = this.myMap.map[player.col][player.row].totalSenses || [],
           adjacentTiles = this.myMap.getAdjacentTiles(player.col, player.row),
@@ -307,8 +389,10 @@ module.exports = (function () {
         // There are no senses for the ladder, so if we come accross it we store it.
         if (this.map[player.col][player.row].id === 'Ladder') {
           this.history[this.time].ladder = [this.map[player.col][player.row]];
-          // If we have the gold the game is over, we have reached the ladder with the gold.
-          if (player.gold) {
+          // If we have the gold at this point the game is over, because we have reached the ladder with 
+          // the gold.
+          if (this.history[this.time].takenGold) {
+            this.myMap.won();
             this.over = true;
             return;
           }
@@ -367,12 +451,12 @@ module.exports = (function () {
 
     // If we want to just move our player rather than shoot or take the gold,
       if (action[0] === 'Move') {
+        if (action[1] instanceof Array) {
+          action = [action[0], action[1][0]];
+        }
         
         // We want to leave the id 'Ladder' on the ladder tile for the whole game, so make sure we
         // do not change the id of the one we are coming from or going to if it is the ladder.
-
-        console.log('this is the map')
-        console.log(action[1])
 
         if (map[action[1].col][action[1].row].id !== 'Ladder') {
           map[action[1].col][action[1].row].id = 'Player';
@@ -401,7 +485,7 @@ module.exports = (function () {
           time.monsterAlive = false;
           // If we did not know about this monster for certain, put it in the certain monsters array and take out all possible
           // monsters because there is only one.
-          if (time.monsters.indexOf(action[1]) === -1) {
+          if (!time.monsters.length) {
             time.monsters.push(action[1]);
             time.possibleMonsters = [];
           }
@@ -421,10 +505,8 @@ module.exports = (function () {
       }
       //
       if (!action) {
-        that.over = true;
-        console.log('Game Over')
+        console.log('It is over');
       } 
-      console.log('Increasing time');
       this.time += 1;
       return this;
     },
@@ -457,7 +539,7 @@ module.exports = (function () {
           currentSenses,
           adjacentTiles,
           matchedTiles = [],
-          senses = {
+          possibleSenses = {
           	'Breeze': 'possiblePits', 
           	'Smell': 'possibleMonsters',
           	'Shine': 'possibleGold'
@@ -482,13 +564,13 @@ module.exports = (function () {
             for (var i = 0; i < currentSenses.length; i += 1) {
               counter = 0;
               //Loop through the possible pits, monsters and gold for each sense
-              for (var k = 0; k < this.history[this.time][senses[currentSenses[i]]].length; k += 1) {
+              for (var k = 0; k < this.history[this.time][possibleSenses[currentSenses[i]]].length; k += 1) {
                 // If the adjacent tile is a possibility for the associated sense
-                if (adjacentTiles.indexOf(this.history[this.time][senses[currentSenses[i]]][k]) !== -1) {
+                if (adjacentTiles.indexOf(this.history[this.time][possibleSenses[currentSenses[i]]][k]) !== -1) {
                   counter += 1;
                   // we set the definative tile in case the counter is only one, if the counter is one we know
                   // for sure if it goes higher than one we break out.
-                  definitiveTile = this.history[this.time][senses[currentSenses[i]]][k]; 
+                  definitiveTile = this.history[this.time][possibleSenses[currentSenses[i]]][k]; 
                   if (counter > 1) break;
                 }
               }
@@ -496,7 +578,7 @@ module.exports = (function () {
               // if we only have one possible location for a pit, it must be a pit.
               if (counter === 1) {
                 this.history[this.time][definitiveSenses[currentSenses[i]]].push(definitiveTile);
-                this.history[this.time][senses[currentSenses[i]]].splice(this.history[this.time][senses[currentSenses[i]]].indexOf(definitiveTile), 1);
+                this.history[this.time][possibleSenses[currentSenses[i]]].splice(this.history[this.time][possibleSenses[currentSenses[i]]].indexOf(definitiveTile), 1);
               }
             }
           } 
@@ -715,7 +797,7 @@ module.exports = (function () {
       // if not try to make a path to it
 
       } else if (history.gold[0] && !history.takenGold) {
-        if (adjacentTiles.indexOf(history.gold)) {
+        if (adjacentTiles.indexOf(history.gold[0])) {
          this.myMap.player.queue.push(['Move', history.gold]);
          this.myMap.player.queue.push(['Take', history.gold]); 
         } else if (this.generatePath(currTile, history.gold[0])) {
@@ -758,23 +840,23 @@ module.exports = (function () {
       }
 
       // The second situation is that we do not know where the monster is for certain but we have some possibilites to try
-
-      var possibleMonster = history.possibleMonsters[0];
-
       //We need to get adjacent to this spot
 
-      var adjacentToPossibleMonster = this.myMap.getAdjacentTiles(possibleMonster.col, possibleMonster.row);
+      if (history.possibleMonsters[0]) {
+        var possibleMonster = history.possibleMonsters[0],
+            adjacentToPossibleMonster = this.myMap.getAdjacentTiles(possibleMonster.col, possibleMonster.row);
 
-      for (var i = 0; i < adjacentToPossibleMonster.length; i += 1) {
-        if (history.safeTiles.indexOf(adjacentToPossibleMonster[i])) {
-          this.generatePath(currTile, adjacentToPossibleMonster[i], 1);
-          return;
+        for (var i = 0; i < adjacentToPossibleMonster.length; i += 1) {
+          if (history.safeTiles.indexOf(adjacentToPossibleMonster[i])) {
+            this.generatePath(currTile, adjacentToPossibleMonster[i], 1);
+            return;
+          }
         }
       }
 
       // The last situation is that we do not even have a clue where the monster is and the game is over.
-              
-      console.log('IMPOSSIBLE TO WIN');
+      this.over = true;
+      this.myMap.gameOver();
       return this;
   }
   };
