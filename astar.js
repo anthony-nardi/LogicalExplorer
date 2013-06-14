@@ -10,7 +10,7 @@ module.exports = (function () {
   		    tempCurrent;
 
       if(!this.openSet.length) {
-        console.log("there is no path to from start to end point");
+   
         return false;
       }
       for (var i = 0; i < this.openSet.length; i += 1) {
@@ -28,17 +28,17 @@ module.exports = (function () {
       this.fillOpenSet(gameState);
 
       if (this.gameState[this.endTile.col] && this.current === this.gameState[this.endTile.col][this.endTile.row]) {
-      	console.log('Path found.');
+   
         this.finalPath = [];
       	this.setPath(this.current.parent);
-        console.log(this.finalPath)
+   
       	return;
       }
       this.aStar()
   	},
 
   	'fillOpenSet' : function () {
-      console.log('Fill Open set')
+  
   		var gameState = this.gameState,
           currTile;
 
@@ -64,7 +64,7 @@ module.exports = (function () {
 
   	'setPath' : function (tile) {
   		if (tile.id === "Start") {
-        console.log('Start: ' + tile.col + ', ' + tile.row)
+
         return this.finalPath;
       }
       if (this.gameState[tile.col] && this.gameState[tile.col][tile.row]) {

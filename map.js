@@ -37,12 +37,21 @@ module.exports = (function () {
       return this;
     },
 
-    'drawMidGameBoard' : function (safe, visited, pits, monsters, gold, ladder) {
+    'drawMidGameBoard' : function (history) {
+      console.log(history)
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
           tileHeight = this.canvas.height / this.columns,
-          tileId;
+          tileId,
+          history = history || {},
+          safe = history.safeTiles,
+          visited = history.visitedTiles,
+          pits = history.pits,
+          monsters = history.monsters,
+          gold = history.gold,
+          ladder = history.ladder;
+
       //draw outline
 
       ctx.lineWidth = 3;
@@ -55,25 +64,21 @@ module.exports = (function () {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
           ctx.lineWidth = 2;
-          if (tileId === 'Player') {
-            ctx.fillStyle = this.playerColor;
-          } else if (tileId === 'Gold') {
-            ctx.fillStyle = this.goldColor;
-          } else if (tileId === 'Ladder') {
-            ctx.fillStyle = this.ladderColor;
-          } else if (tileId === 0) {
-            ctx.fillStyle = '#ffffff';
+          if (tileId === 0) {
+            ctx.fillStyle = '#000000';
           }
           if (safe) {
             if (safe.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'green'
-              ctx.lineWidth = 11
+              ctx.fillStyle = '#ffffff'
+              ctx.lineWidth = 8
             }
           }
           if (visited) {
             if (visited.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'blue'
-              ctx.lineWidth = 11
+              ctx.fillStyle = '#ffffff'
+              ctx.lineWidth = 8
             }
           }
           if (pits) {
@@ -86,7 +91,13 @@ module.exports = (function () {
               ctx.fillStyle = this.monsterColor;
             }
           }
-
+          if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
+          } else if (tileId === 'Gold') {
+            ctx.fillStyle = this.goldColor;
+          } else if (tileId === 'Ladder') {
+            ctx.fillStyle = this.ladderColor;
+          }
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
           ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
@@ -187,7 +198,7 @@ module.exports = (function () {
           numObjs;
       
       for (var i = 0; i < ids.length; i += 1) {
-        numObjs = Math.floor(Math.random()* max[i]) || 1;
+        numObjs = Math.floor(Math.random()* max[i]) || i === 0 ? 5 : 1;
         for (var k = 0; k < numObjs; k += 1) {
           var randPos = this.getRandPos();
           //get tile and set id

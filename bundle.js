@@ -87,12 +87,21 @@ module.exports = (function () {
       return this;
     },
 
-    'drawMidGameBoard' : function (safe, visited, pits, monsters, gold, ladder) {
+    'drawMidGameBoard' : function (history) {
+      console.log(history)
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
           tileHeight = this.canvas.height / this.columns,
-          tileId;
+          tileId,
+          history = history || {},
+          safe = history.safeTiles,
+          visited = history.visitedTiles,
+          pits = history.pits,
+          monsters = history.monsters,
+          gold = history.gold,
+          ladder = history.ladder;
+
       //draw outline
 
       ctx.lineWidth = 3;
@@ -105,25 +114,21 @@ module.exports = (function () {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
           ctx.lineWidth = 2;
-          if (tileId === 'Player') {
-            ctx.fillStyle = this.playerColor;
-          } else if (tileId === 'Gold') {
-            ctx.fillStyle = this.goldColor;
-          } else if (tileId === 'Ladder') {
-            ctx.fillStyle = this.ladderColor;
-          } else if (tileId === 0) {
-            ctx.fillStyle = '#ffffff';
+          if (tileId === 0) {
+            ctx.fillStyle = '#000000';
           }
           if (safe) {
             if (safe.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'green'
-              ctx.lineWidth = 11
+              ctx.fillStyle = '#ffffff'
+              ctx.lineWidth = 8
             }
           }
           if (visited) {
             if (visited.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'blue'
-              ctx.lineWidth = 11
+              ctx.fillStyle = '#ffffff'
+              ctx.lineWidth = 8
             }
           }
           if (pits) {
@@ -136,7 +141,13 @@ module.exports = (function () {
               ctx.fillStyle = this.monsterColor;
             }
           }
-
+          if (tileId === 'Player') {
+            ctx.fillStyle = this.playerColor;
+          } else if (tileId === 'Gold') {
+            ctx.fillStyle = this.goldColor;
+          } else if (tileId === 'Ladder') {
+            ctx.fillStyle = this.ladderColor;
+          }
           ctx.fillRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
           ctx.strokeRect(col * tileWidth, row * tileHeight, tileWidth, tileHeight);
         }
@@ -237,7 +248,7 @@ module.exports = (function () {
           numObjs;
       
       for (var i = 0; i < ids.length; i += 1) {
-        numObjs = Math.floor(Math.random()* max[i]) || 1;
+        numObjs = Math.floor(Math.random()* max[i]) || i === 0 ? 5 : 1;
         for (var k = 0; k < numObjs; k += 1) {
           var randPos = this.getRandPos();
           //get tile and set id
@@ -393,7 +404,7 @@ module.exports = (function () {
           // the gold.
           if (this.history[this.time].takenGold) {
             this.over = true;
-            return;
+
           }
         }
 
@@ -425,16 +436,23 @@ module.exports = (function () {
       
 
       // Just so we can see the game evolve slowly we use a set timeout here. 
-      
+      this.time += 1;
       setTimeout(function () {
         if (!that.over && history.safeTiles.length === 0) {
             this.myMap.gameOver();
             this.over = true;
+          
+            that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
         }
         if (!that.over) {
           that.observe();
+          that.myMap.drawMidGameBoard(that.history[that.time - 1]);
+        } else {
+          setTimeout(function () {
+            window.location = window.location;
+          }, 2000)
           that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
-          }
+        }
       }, 200);
      
       return this;
@@ -449,8 +467,7 @@ module.exports = (function () {
           time = this.history[this.time],
           visitedTiles = time.visitedTiles,
           map = this.myMap.map;
-          console.log('Action : ' + action[0]);
-          console.log(action);
+          
 
     // If we want to just move our player rather than shoot or take the gold,
       if (action[0] === 'Move') {
@@ -493,7 +510,7 @@ module.exports = (function () {
             time.possibleMonsters = [];
           }
         } else {
-      // if the tile does not contain the monster
+      // if the tile doe
           console.log('You shot but the monster was not in that tile');
           time.possibleMonsters.splice(time.possibleMonsters.indexOf(action[1]), 1);
         }
@@ -504,13 +521,13 @@ module.exports = (function () {
       if (action[0] === 'Take') {  
         player.gold = true;
         time.takenGold = 1;
-        console.log('Take ' + action[1]);
+        
       }
       //
       if (!action) {
         console.log('It is over');
       } 
-      this.time += 1;
+      
       return this;
     },
 
@@ -537,11 +554,9 @@ module.exports = (function () {
     },
 
     'checkCertainty' : function () {
-      var obsticles = ['pits','possiblePits','monsters','possibleMonsters','possibleGold'],
-          checkedTiles = [],
+      var checkedTiles = [],
           currentSenses,
           adjacentTiles,
-          matchedTiles = [],
           possibleSenses = {
           	'Breeze': 'possiblePits', 
           	'Smell': 'possibleMonsters',
@@ -553,7 +568,7 @@ module.exports = (function () {
           	'Shine': 'gold'
           },
           counter = 0,
-          definitiveTile;
+          definitiveTile, possibilityList, definitiveList;
       // for every point in time where we recorded a history
       for (var t = this.time; t >= 0; t -= 1) {
       	// if this is the first time we are analyzing it (we want the most recent history for each tile)
@@ -566,22 +581,27 @@ module.exports = (function () {
           if (currentSenses.length) {
             for (var i = 0; i < currentSenses.length; i += 1) {
               counter = 0;
+              possibilityList = this.history[this.time][possibleSenses[currentSenses[i]]];
+              definitiveList = this.history[this.time][definitiveSenses[currentSenses[i]]];
               //Loop through the possible pits, monsters and gold for each sense
-              for (var k = 0; k < this.history[this.time][possibleSenses[currentSenses[i]]].length; k += 1) {
-                // If the adjacent tile is a possibility for the associated sense
-                if (adjacentTiles.indexOf(this.history[this.time][possibleSenses[currentSenses[i]]][k]) !== -1) {
+              for (var k = 0; k < adjacentTiles.length; k += 1) {
+                if (possibilityList.indexOf(adjacentTiles[k]) !== -1) {
                   counter += 1;
-                  // we set the definative tile in case the counter is only one, if the counter is one we know
-                  // for sure if it goes higher than one we break out.
-                  definitiveTile = this.history[this.time][possibleSenses[currentSenses[i]]][k]; 
-                  if (counter > 1) break;
+                  definitiveTile = adjacentTiles[k];
+                  
+                }
+                if (definitiveList.indexOf(adjacentTiles[k]) !== -1) {
+                  counter += 2;
                 }
               }
               // Make that possibility a certainty if the counter is one, because we can say for certain that
               // if we only have one possible location for a pit, it must be a pit.
-              if (counter === 1) {
-                this.history[this.time][definitiveSenses[currentSenses[i]]].push(definitiveTile);
-                this.history[this.time][possibleSenses[currentSenses[i]]].splice(this.history[this.time][possibleSenses[currentSenses[i]]].indexOf(definitiveTile), 1);
+              if (definitiveTile && counter === 1 && definitiveList.indexOf(definitiveTile) === -1) {
+                console.log('Definite!') 
+                console.log(definitiveTile)
+                console.log(this.history[t].currentTile)
+                definitiveList.push(definitiveTile);
+                possibilityList.splice(possibilityList.indexOf(definitiveTile), 1);
               }
             }
           } 
@@ -605,10 +625,10 @@ module.exports = (function () {
           path.reverse();
           if (path[path.length -1] !== end) {
             path.push(end);
-          }
+          }/*
           console.log('Follow path from ' + this.myMap.player.col + ', ' + this.myMap.player.row + ' to ' + path[path.length - 1]);
           console.log('This is the path');
-          console.log(path)
+          console.log(path)*/
           for (var i = 0; i < path.length; i += 1) {
             this.myMap.player.queue.push(['Move', path[i]]);
           }
@@ -653,18 +673,30 @@ module.exports = (function () {
       time = this.history[this.time],
       safeTiles = time.safeTiles;
       //for each adjacent tile to the one we are looking at
+
+      if (!totalSenses.length) {
+        //if there are no senses then there aren't any potential things we need to add to our lists
+        return;
+      }
+      //If all we sense is a shine, make all adjacent tiles safe and put them in the possibleGold list
+      if (totalSenses[0] === 'Shine' && totalSenses.length === 1) {
+        for (var i = 0; i < adjacentTiles.length; i += 1) {  
+          if (time.safeTiles.indexOf(adjacentTiles[i]) === -1) {
+            time.safeTiles.push(adjacentTiles[i]);
+            if (time[senses[totalSenses[0]]].indexOf(adjacentTiles[i]) === -1) {
+              time[senses[totalSenses[0]]].push(adjacentTiles[i]);
+            }
+          }
+        }
+      }
+      //only for senses that aren't gold, loop through each adjacent tile and put them in the possibility lists
       for (var i = 0; i < adjacentTiles.length; i += 1) {
         //for each sense of the current tile
         for (var k = 0; k < totalSenses.length; k += 1) {
-        	//if the possibility list for that sense does not contain the adjacent tile
-        	if (time[senses[totalSenses[k]]].indexOf(adjacentTiles[i]) === -1) {
+        	//if the possibility list for that sense does not contain the adjacent tile and its not a known safe tile
+        	if (time[senses[totalSenses[k]]].indexOf(adjacentTiles[i]) === -1 && safeTiles.indexOf(adjacentTiles[i]) === -1) {
         		//put that adjacent tile in the possibility list
         		time[senses[totalSenses[k]]].push(adjacentTiles[i]);
-            if (totalSenses[k] === 'Shine' && totalSenses.length === 1) {
-              if (time.safeTiles.indexOf(adjacentTiles[i]) === -1) {
-                time.safeTiles.push(adjacentTiles[i]);
-              };
-            }
         	}
         }
       }
@@ -709,7 +741,7 @@ module.exports = (function () {
             tileMap[col][row] = {
               'id' : id ? id : 'Blocked'
             };
-            console.log('Blocked: ' + col + ', ' + row)
+          
           }
           id = undefined;
         } 
@@ -746,8 +778,7 @@ module.exports = (function () {
           }
         }  
       }
-      console.log('This is the tile to return');
-      console.log(tileToReturn);
+   
       return tileToReturn;
     },
 
@@ -784,13 +815,13 @@ module.exports = (function () {
           currTile = this.myMap.player,
           time = this.time,
           history = this.history[time];
-          console.log('Make makeDecision');
+          
 
      // If we have the gold and know where the ladder is lets make a path to the ladder if we can  
 
       if (history.takenGold && history.ladder[0]) {
 
-        console.log('We have gold and we know where the ladder is');
+       
 
           if (this.generatePath(currTile, history.ladder[0])) {
             return;
@@ -865,7 +896,7 @@ module.exports = (function () {
   };
 
   var init = function (that) {
-      console.log(that)
+    
       that.history[0] = {
         'senses': that.myMap.map[that.myMap.player.col][that.myMap.player.row].totalSenses || [],
         'monsterAlive' : true,
@@ -929,7 +960,7 @@ module.exports = (function () {
   		    tempCurrent;
 
       if(!this.openSet.length) {
-        console.log("there is no path to from start to end point");
+   
         return false;
       }
       for (var i = 0; i < this.openSet.length; i += 1) {
@@ -947,17 +978,17 @@ module.exports = (function () {
       this.fillOpenSet(gameState);
 
       if (this.gameState[this.endTile.col] && this.current === this.gameState[this.endTile.col][this.endTile.row]) {
-      	console.log('Path found.');
+   
         this.finalPath = [];
       	this.setPath(this.current.parent);
-        console.log(this.finalPath)
+   
       	return;
       }
       this.aStar()
   	},
 
   	'fillOpenSet' : function () {
-      console.log('Fill Open set')
+  
   		var gameState = this.gameState,
           currTile;
 
@@ -983,7 +1014,7 @@ module.exports = (function () {
 
   	'setPath' : function (tile) {
   		if (tile.id === "Start") {
-        console.log('Start: ' + tile.col + ', ' + tile.row)
+
         return this.finalPath;
       }
       if (this.gameState[tile.col] && this.gameState[tile.col][tile.row]) {
@@ -1051,7 +1082,7 @@ module.exports = (function () {
     
     'getGScore' : function (current) {
       if(current === undefined) {
-        console.log("current is undefined... tile.js");
+        
       }
       var xDiff = Math.abs(this.col - current.col),
           yDiff = Math.abs(this.row - current.row),
