@@ -295,7 +295,7 @@ module.exports = (function () {
             //If we are shooting we need to add shoot onto it
             if (shooting) {
               console.log('SHOOOTTTT')
-              this.shootingLogic();
+              this.shootingLogic(shooting);
             }
             return true;
           } else {
@@ -307,7 +307,7 @@ module.exports = (function () {
           //start and end are the same tile.
           if (shooting) {
             console.log('SHOOOTTTT')
-            this.shootingLogic();
+            this.shootingLogic(shooting);
             return true;
           } else {
             return true;
@@ -315,13 +315,13 @@ module.exports = (function () {
         }
       },
 
-    'shootingLogic' : function () {
+    'shootingLogic' : function (shooting) {
       var time = this.time,
           history = this.history[time],
           lastMove,
           adjacentMoves;
       if (history.monsters.length) {
-        this.myMap.player.queue.push(['Shoot', history.monsters[0]]);
+        this.myMap.player.queue.push(['Shoot', shooting]);
       } else if (this.myMap.player.queue[this.myMap.player.queue.length - 1]) {
         lastMove = this.myMap.player.queue[this.myMap.player.queue.length - 1];
         adjacentMoves = this.myMap.getAdjacentTiles(lastMove[1].col, lastMove[1].row);
@@ -565,7 +565,7 @@ module.exports = (function () {
 
           for (var i = 0; i < adjacentToMonster.length; i += 1) {
             if (history.safeTiles.indexOf(adjacentToMonster[i]) !== -1) {
-              if (this.generatePath(currTile, adjacentToMonster[i], 1)) {
+              if (this.generatePath(currTile, adjacentToMonster[i], monsterToShoot)) {
                 return;
               }
             }
