@@ -541,7 +541,27 @@ module.exports = (function () {
       // But first we need to get a safe tile that is adjacent to the monster to shoot from
       if (this.myMap.player.ammo) {
         if (history.monsters[0]) {
-          var adjacentToMonster = this.myMap.getAdjacentTiles(history.monsters[0].col, history.monsters[0].row);
+          var monsterToShoot = history.monsters[0],
+              adjacentTilesToMonster,
+              counter = 0,
+              lastCounter = 0;
+          for (var i = 0; i < history.monsters.length; i += 1) {
+            adjacentToMonster = this.myMap.getAdjacentTiles(history.monsters[i].col, history.monsters[i].row);
+            for (var j = 0; j < adjacentToMonster.length; j += 1) {
+              if (history.safeTiles.indexOf(adjacentToMonster[j]) === -1) {
+                if (history.possibleGold.indexOf(adjacentToMonster[i]) !== -1) {
+                  counter = 1000000;
+                } else {
+                  counter += 1;
+                }
+              }
+            }
+            if (counter > lastCounter) {
+              lastCounter = counter;
+              monsterToShoot = history.monsters[i];
+            }
+          }
+          var adjacentToMonster = this.myMap.getAdjacentTiles(monsterToShoot.col, monsterToShoot.row);
 
           for (var i = 0; i < adjacentToMonster.length; i += 1) {
             if (history.safeTiles.indexOf(adjacentToMonster[i]) !== -1) {
