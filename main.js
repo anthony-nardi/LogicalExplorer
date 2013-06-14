@@ -10,6 +10,7 @@ function eventWindowLoaded() {
 }
 
 function canvasApp() {
+  
   var canvas = document.getElementById('myCanvas');
   
   myMap = map({  
@@ -21,5 +22,5 @@ function canvasApp() {
     'myMap' : myMap,
     'map' : myMap.map
   })
-  window.logic = logic;
+
 }

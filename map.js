@@ -236,12 +236,18 @@ module.exports = (function () {
   },
   
   'sensify' : function  (isFirstTime) {
+    //for every row and for every column
     for (var row = 0; row < this.rows; row += 1) {
       for (var col = 0; col < this.columns; col += 1) {
+        //if the tile is a pit, monster, or gold then get the adjacent tiles
         if (this.map[col][row].id !== 0 && this.map[col][row].id !== 'Ladder' && this.map[col][row].id !== 'Player') {
           var adjacents = this.getAdjacentTiles(col, row);
+          //for every adjacent tile
           for (var i = 0;  i < adjacents.length; i += 1) {
-            if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder' || adjacents[i].id === 'Player') {
+            //if the adjacent tile is a 0, ladder, or player, then we want to put a sense in it
+            if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder' || adjacents[i].id === 'Player' || adjacents[i].id === 'Gold') {
+              //if the tile is a pit, then put the sense in the immutable list of the adjacent tile,
+              //otherwise, put the sense in the mutable list of the adjacent tile.
               if (this.map[col][row].id !== 'Pit') {
                 if (adjacents[i].mutable.indexOf(this.map[col][row].sense) === -1) {
                   adjacents[i].mutable.push(this.map[col][row].sense);
