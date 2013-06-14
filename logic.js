@@ -31,6 +31,7 @@ module.exports = (function () {
             'monsters': this.history[this.time - 1].monsters,
             'possibleMonsters': this.history[this.time - 1].possibleMonsters,
             'possibleGold' : this.history[this.time - 1].possibleGold,
+            'killedMonsters': this.history[this.time - 1].killedMonsters,
             'ladder': this.history[this.time - 1].ladder,
             'takenGold' : this.history[this.time - 1].takenGold
           }
@@ -96,11 +97,12 @@ module.exports = (function () {
         }
         if (!that.over) {
           that.observe();
-          that.myMap.drawMidGameBoard(that.history[that.time - 1]);
+          //that.myMap.drawMidGameBoard(that.history[that.time - 1]);
+          that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
         } else {
           setTimeout(function () {
             window.location = window.location;
-          }, 2000)
+          }, 5000)
           that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
         }
       }, 200);
@@ -148,16 +150,24 @@ module.exports = (function () {
       // Check the tile to see if the one we are shooting at contains the monster.
         if (action[1].id === 'Monster') {
           player.ammo -= 1;
-          time.monsterAlive = false;
           // If we did not know about this monster for certain, put it in the certain monsters array and take out all possible
           // monsters because there is only one.
-          if (!time.monsters.length) {
-            time.monsters.push(action[1]);
-            time.possibleMonsters = [];
+          if (time.monsters.indexOf(action[1]) !== -1) {
+            time.monsters.splice(time.monsters.indexOf(action[1]), 1);
+            time.possibleMonsters.splice(time.possibleMonsters.indexOf(action[1]), 1);
           }
+          if (time.killedMonsters.indexOf(action[1]) === -1) {
+            time.killedMonsters.push(action[1]);
+          }
+          action[1].id = 0;
+          time.safeTiles.push(action[1]);
+          console.log('MONSTER KILLED!')
+          player.queue = [];
+          this.myMap.desensify().sensify();
         } else {
       // if the tile doe
           console.log('You shot but the monster was not in that tile');
+          player.ammo -= 1;
           time.possibleMonsters.splice(time.possibleMonsters.indexOf(action[1]), 1);
         }
       }
@@ -243,9 +253,6 @@ module.exports = (function () {
               // Make that possibility a certainty if the counter is one, because we can say for certain that
               // if we only have one possible location for a pit, it must be a pit.
               if (definitiveTile && counter === 1 && definitiveList.indexOf(definitiveTile) === -1) {
-                console.log('Definite!') 
-                console.log(definitiveTile)
-                console.log(this.history[t].currentTile)
                 definitiveList.push(definitiveTile);
                 possibilityList.splice(possibilityList.indexOf(definitiveTile), 1);
               }
@@ -262,36 +269,49 @@ module.exports = (function () {
             tileMap = this.generateTileMap(start, end);
         tileMap.endCol = end.col;
         tileMap.endRow = end.row;
-        var path = aStar({
-          'start': start, 
-          'end': end, 
-          'gameState': tileMap
-        }).finalPath;
-        if (path.length) {
-          this.myMap.player.queue = [];
-          path.reverse();
-          if (path[path.length -1] !== end) {
-            path.push(end);
-          }/*
-          console.log('Follow path from ' + this.myMap.player.col + ', ' + this.myMap.player.row + ' to ' + path[path.length - 1]);
-          console.log('This is the path');
-          console.log(path)*/
-          for (var i = 0; i < path.length; i += 1) {
-            this.myMap.player.queue.push(['Move', path[i]]);
+        //if the starting and ending tile are not equal
+        if (start.row !== end.row || start.col !== end.col) {
+          var path = aStar({
+            'start': start, 
+            'end': end, 
+            'gameState': tileMap
+          }).finalPath;
+          if (path.length) {
+            this.myMap.player.queue = [];
+            path.reverse();
+            if (path[path.length -1] !== end) {
+              path.push(end);
+            }/*
+            console.log('Follow path from ' + this.myMap.player.col + ', ' + this.myMap.player.row + ' to ' + path[path.length - 1]);
+            console.log('This is the path');
+            console.log(path)*/
+            for (var i = 0; i < path.length; i += 1) {
+              this.myMap.player.queue.push(['Move', path[i]]);
+            }
+            // If the last element of the array contains the gold we need to add a take action onto the end
+            if (path[path.length - 1].id === 'Gold') {
+              this.myMap.player.queue.push(['Take', path[path.length -1]]);
+            }
+            //If we are shooting we need to add shoot onto it
+            if (shooting) {
+              console.log('SHOOOTTTT')
+              this.shootingLogic();
+            }
+            return true;
+          } else {
+            console.log('Cannot make a path...')
+            console.log(path)
+            return false;
           }
-          // If the last element of the array contains the gold we need to add a take action onto the end
-          if (path[path.length - 1].id === 'Gold') {
-            this.myMap.player.queue.push(['Take', path[path.length -1]]);
-          }
-          //If we are shooting we need to add shoot onto it
-          if (false || shooting) {
-            this.shootingLogic();
-          }
-          return true;
         } else {
-          console.log('Cannot make a path...')
-          console.log(path)
-          return false;
+          //start and end are the same tile.
+          if (shooting) {
+            console.log('SHOOOTTTT')
+            this.shootingLogic();
+            return true;
+          } else {
+            return true;
+          }
         }
       },
 
@@ -300,13 +320,23 @@ module.exports = (function () {
           history = this.history[time],
           lastMove,
           adjacentMoves;
-      if (history.monsters) {
+      if (history.monsters.length) {
         this.myMap.player.queue.push(['Shoot', history.monsters[0]]);
-      } else {
+      } else if (this.myMap.player.queue[this.myMap.player.queue.length - 1]) {
         lastMove = this.myMap.player.queue[this.myMap.player.queue.length - 1];
         adjacentMoves = this.myMap.getAdjacentTiles(lastMove[1].col, lastMove[1].row);
         for (var i = 0; i < adjacentMoves.length; i += 1) {
-          if (history.possibleMonsters.indexOf(adjacentMoves[i])) {
+          if (history.possibleMonsters.indexOf(adjacentMoves[i]) !== -1) {
+            this.myMap.player.queue.push(['Shoot', adjacentMoves[i]]);
+          }
+        }
+      } else {
+        //there is no previous move
+        console.log('THERE IS NOT PREVIOUS MOVE')
+        console.log(this.over)
+        adjacentMoves = this.myMap.getAdjacentTiles(this.myMap.player.col, this.myMap.player.row);
+        for (var i = 0; i < adjacentMoves.length; i += 1) {
+          if (history.possibleMonsters.indexOf(adjacentMoves[i]) !== -1) {
             this.myMap.player.queue.push(['Shoot', adjacentMoves[i]]);
           }
         }
@@ -509,33 +539,38 @@ module.exports = (function () {
       // The first situation is when we know where the monster is, we can make a path there and shoot it
 
       // But first we need to get a safe tile that is adjacent to the monster to shoot from
+      if (this.myMap.player.ammo) {
+        if (history.monsters[0]) {
+          var adjacentToMonster = this.myMap.getAdjacentTiles(history.monsters[0].col, history.monsters[0].row);
 
-      if (history.monsters[0]) {
-        var adjacentToMonster = this.myMap.getAdjacentTiles(history.monsters[0].col, history.monsters[0].row);
-
-        for (var i = 0; i < adjacentToMonster.length; i += 1) {
-          if (history.safeTiles.indexOf(adjacentToMonster[i]) !== -1) {
-            if (this.generatePath(currTile, adjacentToMonster[i], 1)) {
-              return;
+          for (var i = 0; i < adjacentToMonster.length; i += 1) {
+            if (history.safeTiles.indexOf(adjacentToMonster[i]) !== -1) {
+              if (this.generatePath(currTile, adjacentToMonster[i], 1)) {
+                return;
+              }
             }
           }
         }
-      }
 
-      // The second situation is that we do not know where the monster is for certain but we have some possibilites to try
-      //We need to get adjacent to this spot
+        // The second situation is that we do not know where the monster is for certain but we have some possibilites to try
+        //We need to get adjacent to this spot
 
-      if (history.possibleMonsters[0]) {
-        var possibleMonster = history.possibleMonsters[0],
-            adjacentToPossibleMonster = this.myMap.getAdjacentTiles(possibleMonster.col, possibleMonster.row);
+        if (history.possibleMonsters[0]) {
+          var possibleMonster = history.possibleMonsters[0],
+              adjacentToPossibleMonster = this.myMap.getAdjacentTiles(possibleMonster.col, possibleMonster.row);
 
-        for (var i = 0; i < adjacentToPossibleMonster.length; i += 1) {
-          if (history.safeTiles.indexOf(adjacentToPossibleMonster[i]) !== -1) {
-            if (this.generatePath(currTile, adjacentToPossibleMonster[i], 1)) {
-              return;
+          for (var i = 0; i < adjacentToPossibleMonster.length; i += 1) {
+            if (history.safeTiles.indexOf(adjacentToPossibleMonster[i]) !== -1) {
+              console.log(currTile)
+              console.log(adjacentToPossibleMonster[i])
+              if (this.generatePath(currTile, adjacentToPossibleMonster[i], 1)) {
+                return;
+              }
             }
           }
         }
+      } else {
+        console.log('OUT OF AMMO!')
       }
 
       // The last situation is that we do not even have a clue where the monster is and the game is over.
@@ -562,6 +597,7 @@ module.exports = (function () {
         'possiblePits': [],
         'monsters': [],
         'possibleMonsters': [],
+        'killedMonsters' : [],
         'possibleGold' : [],
         'ladder': [],
         'takenGold': 0

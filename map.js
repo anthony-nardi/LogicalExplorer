@@ -13,7 +13,7 @@ module.exports = (function () {
     'playerColor' : '#ff208c',
 
     'maxPit': 10,
-    'maxMonster': 1,
+    'maxMonster': 10,
     'maxLadder': 1,
     'maxGold': 1,
     'maxAmmo': 1,
@@ -38,7 +38,7 @@ module.exports = (function () {
     },
 
     'drawMidGameBoard' : function (history) {
-      console.log(history)
+
       var ctx = this.ctx,
           myCanvas = this.canvas,
           tileWidth = this.canvas.width / this.rows,
@@ -64,9 +64,8 @@ module.exports = (function () {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
           ctx.lineWidth = 2;
-          //if (tileId === 0) {
-            ctx.fillStyle = '#000000';
-          //}
+          ctx.fillStyle = '#000000';
+
           if (safe) {
             if (safe.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'green'
@@ -91,6 +90,7 @@ module.exports = (function () {
               ctx.fillStyle = this.monsterColor;
             }
           }
+
           if (tileId === 'Player') {
             ctx.fillStyle = this.playerColor;
           } else if (tileId === 'Gold') {
@@ -167,7 +167,7 @@ module.exports = (function () {
           numObjs;
       
       for (var i = 0; i < ids.length; i += 1) {
-        numObjs = Math.floor(Math.random()* max[i]) || i === 0 ? 5 : 1;
+        numObjs = Math.floor(Math.random()* max[i]) || i === 0 || i === 1 ? 5 : 1;
         for (var k = 0; k < numObjs; k += 1) {
           var randPos = this.getRandPos();
           //get tile and set id
@@ -181,7 +181,7 @@ module.exports = (function () {
     
     },
     
-    'desenfyMap' : function () {
+    'desensify' : function () {
       for (var row = 0; row < this.rows; row += 1) {
         for (var col = 0; col < this.columns; col += 1) {
           if (this.map[col][row].mutable.length) {
@@ -209,12 +209,13 @@ module.exports = (function () {
     for (var row = 0; row < this.rows; row += 1) {
       for (var col = 0; col < this.columns; col += 1) {
         //if the tile is a pit, monster, or gold then get the adjacent tiles
+        this.map[col][row].totalSenses = this.map[col][row].getTotalSenses();
         if (this.map[col][row].id !== 0 && this.map[col][row].id !== 'Ladder' && this.map[col][row].id !== 'Player') {
           var adjacents = this.getAdjacentTiles(col, row);
           //for every adjacent tile
           for (var i = 0;  i < adjacents.length; i += 1) {
             //if the adjacent tile is a 0, ladder, or player, then we want to put a sense in it
-            if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder' || adjacents[i].id === 'Player' || adjacents[i].id === 'Gold') {
+            //if (adjacents[i].id === 0 || adjacents[i].id === 'Ladder' || adjacents[i].id === 'Player' || adjacents[i].id === 'Gold') {
               //if the tile is a pit, then put the sense in the immutable list of the adjacent tile,
               //otherwise, put the sense in the mutable list of the adjacent tile.
               if (this.map[col][row].id !== 'Pit') {
@@ -228,7 +229,7 @@ module.exports = (function () {
               }
               adjacents[i].totalSenses = adjacents[i].getTotalSenses();
             }
-          }
+          //}
         }
       }
     }
@@ -256,7 +257,7 @@ module.exports = (function () {
     this.player = {
       'col': randPos[0],
       'row': randPos[1],
-      'ammo': 1,
+      'ammo': 3,
       'queue' :  []
     };
     return this;
