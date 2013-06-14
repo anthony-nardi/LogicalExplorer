@@ -2,6 +2,10 @@ module.exports = (function () {
   var aStar = require('./astar');
   var logicProto = {
     
+    'history' : [],
+    
+    'time' : 0,
+    
     'observe' : function () {
       
       var player = this.myMap.player,
@@ -103,10 +107,6 @@ module.exports = (function () {
      
       return this;
     },
-
-    'history' : [],
-    
-    'time' : 0,
 
     'move' : function (action) {
       var player = this.myMap.player,
@@ -268,6 +268,7 @@ module.exports = (function () {
           'gameState': tileMap
         }).finalPath;
         if (path.length) {
+          this.myMap.player.queue = [];
           path.reverse();
           if (path[path.length -1] !== end) {
             path.push(end);
@@ -283,11 +284,13 @@ module.exports = (function () {
             this.myMap.player.queue.push(['Take', path[path.length -1]]);
           }
           //If we are shooting we need to add shoot onto it
-          if (shooting) {
+          if (false || shooting) {
             this.shootingLogic();
           }
           return true;
         } else {
+          console.log('Cannot make a path...')
+          console.log(path)
           return false;
         }
       },
@@ -466,21 +469,21 @@ module.exports = (function () {
      // If we have the gold and know where the ladder is lets make a path to the ladder if we can  
 
       if (history.takenGold && history.ladder[0]) {
-
-       
-
-          if (this.generatePath(currTile, history.ladder[0])) {
-            return;
-          }
-
+        
+        if (this.generatePath(currTile, history.ladder[0])) {
+          return;
+        }
       //else if we know where the gold is but we do not have it see if it is locatedin an adjacent tile, 
       // if not try to make a path to it
 
       } else if (history.gold[0] && !history.takenGold) {
-        if (adjacentTiles.indexOf(history.gold[0])) {
-         this.myMap.player.queue.push(['Move', history.gold]);
-         this.myMap.player.queue.push(['Take', history.gold]); 
-        } else if (this.generatePath(currTile, history.gold[0])) {
+        /*if (adjacentTiles.indexOf(history.gold[0])) {
+          this.myMap.player.queue = [];
+          this.myMap.player.queue.push(['Move', history.gold[0]]);
+          this.myMap.player.queue.push(['Take', history.gold[0]]);
+          return; 
+        } else*/
+         if (this.generatePath(currTile, history.gold[0])) {
           console.log('know where gold is and have not taken it');
           return;
         }
@@ -498,8 +501,7 @@ module.exports = (function () {
       // unvisited safe tile if there are any safe tiles we have not visited.
 
       if (history.safeTiles.length !== history.visitedTiles.length) {
-        var tileToMoveTo = this.findClosestSafe();
-        if (this.generatePath(currTile, tileToMoveTo)) {
+        if (this.generatePath(currTile, this.findClosestSafe())) {
           return;
         }
       }
@@ -512,9 +514,10 @@ module.exports = (function () {
         var adjacentToMonster = this.myMap.getAdjacentTiles(history.monsters[0].col, history.monsters[0].row);
 
         for (var i = 0; i < adjacentToMonster.length; i += 1) {
-          if (history.safeTiles.indexOf(adjacentToMonster[i])) {
-            this.generatePath(currTile, adjacentToMonster[i], 1);
-            return;
+          if (history.safeTiles.indexOf(adjacentToMonster[i]) !== -1) {
+            if (this.generatePath(currTile, adjacentToMonster[i], 1)) {
+              return;
+            }
           }
         }
       }
@@ -527,18 +530,20 @@ module.exports = (function () {
             adjacentToPossibleMonster = this.myMap.getAdjacentTiles(possibleMonster.col, possibleMonster.row);
 
         for (var i = 0; i < adjacentToPossibleMonster.length; i += 1) {
-          if (history.safeTiles.indexOf(adjacentToPossibleMonster[i])) {
-            this.generatePath(currTile, adjacentToPossibleMonster[i], 1);
-            return;
+          if (history.safeTiles.indexOf(adjacentToPossibleMonster[i]) !== -1) {
+            if (this.generatePath(currTile, adjacentToPossibleMonster[i], 1)) {
+              return;
+            }
           }
         }
       }
 
       // The last situation is that we do not even have a clue where the monster is and the game is over.
-      //this.over = true;
+      this.over = true;
 
       return this;
-  }
+    }
+
   };
 
   var init = function (that) {

@@ -64,9 +64,9 @@ module.exports = (function () {
           tileId = this.map[col][row].id;
           ctx.strokeStyle = 'black'
           ctx.lineWidth = 2;
-          if (tileId === 0) {
+          //if (tileId === 0) {
             ctx.fillStyle = '#000000';
-          }
+          //}
           if (safe) {
             if (safe.indexOf(this.map[col][row]) !== -1) {
               ctx.strokeStyle = 'green'
@@ -103,37 +103,6 @@ module.exports = (function () {
         }
       }
       return this;
-    },
-
-    'won' : function () {
-      var ctx = this.ctx,
-          myCanvas = this.canvas,
-          tileWidth = this.canvas.width / this.rows,
-          tileHeight = this.canvas.height / this.columns,
-          tileId;
-      
-      ctx.fillStyle = '#FF0000';
-      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
-      ctx.fillStyle = '#000000';
-      ctx.font = '20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Mission Complete', myCanvas.width/2, myCanvas.height/2);
-
-    },
-
-    'gameOver' : function () {
-      var ctx = this.ctx,
-          myCanvas = this.canvas,
-          tileWidth = this.canvas.width / this.rows,
-          tileHeight = this.canvas.height / this.columns,
-          tileId;
-      
-      ctx.fillStyle = '#FF0000';
-      ctx.fillRect(0,0, myCanvas.width, myCanvas.height);
-      ctx.fillStyle = '#000000';
-      ctx.font = '20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Mission Impossible', myCanvas.width/2, myCanvas.height/2);
     },
 
     'drawGameBoard' : function (safeTiles, visitedTiles) {
