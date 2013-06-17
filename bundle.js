@@ -148,8 +148,8 @@ module.exports = (function () {
         }
         if (!that.over) {
           that.observe();
-          //that.myMap.drawMidGameBoard(that.history[that.time - 1]);
-          that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
+          that.myMap.drawMidGameBoard(that.history[that.time - 1]);
+          //that.myMap.drawGameBoard(that.history[that.time - 1].safeTiles , that.history[that.time - 1].visitedTiles);
         } else {
           setTimeout(function () {
             window.location = window.location;
